@@ -1,0 +1,18 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Default deny all access
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+    
+    // Allow authenticated users to read and write only their own profile images
+    match /profile-images/{userId}/{allImages=**} {
+      // Allow read access to everyone for profile images (since they may be public)
+      allow read: if true;
+      
+      // Allow write only if the user is logged in and is modifying their own profile image
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+} 

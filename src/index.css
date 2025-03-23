@@ -1,0 +1,77 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom theme variables */
+:root {
+  --color-primary: #e50046;
+  --color-primary-light: #ff3370;
+  --color-primary-dark: #c30039;
+
+  --color-secondary: #c7db9c;
+  --color-secondary-light: #d9e8b8;
+  --color-secondary-dark: #a6c06e;
+
+  --color-accent: #fdab9e;
+  --color-accent-light: #ffc7be;
+  --color-accent-dark: #f98978;
+
+  --color-highlight: #fff0bd;
+  --color-highlight-light: #fffad9;
+  --color-highlight-dark: #f5e28e;
+
+  --color-dark-primary: #121212;
+  --color-dark-secondary: #1e1e1e;
+  --color-dark-accent: #2a2a2a;
+  --color-dark-text: #e0e0e0;
+}
+
+/* Define the shadow classes explicitly */
+.shadow-custom {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.shadow-custom-hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.shadow-dark-custom {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.shadow-dark-custom-hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+body {
+  font-family: "Poppins", sans-serif;
+  @apply bg-[#F9FAFB] text-gray-800 dark:bg-darkTheme-primary dark:text-darkTheme-text min-h-screen transition-colors duration-300;
+}
+
+@layer components {
+  .form-input {
+    @apply w-full p-[1rem_1rem] rounded-lg border border-gray-300 focus:outline-none focus:ring-2 ring-primary focus:border-transparent transition-all duration-200;
+  }
+
+  .btn-primary {
+    @apply p-[0.75rem_1rem] rounded-lg font-medium transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 bg-primary text-white hover:bg-primary-dark ring-primary;
+  }
+
+  .btn-secondary {
+    @apply p-[0.75rem_1rem] rounded-lg font-medium transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 bg-secondary text-gray-800 hover:bg-secondary-dark ring-secondary;
+  }
+
+  .btn-outline {
+    @apply p-[0.75rem_1rem] rounded-lg font-medium transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 border border-primary text-primary hover:bg-primary hover:text-white ring-primary;
+  }
+
+  .btn-google {
+    @apply p-[0.75rem_1rem] rounded-lg font-medium transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 ring-gray-400;
+  }
+
+  .card {
+    @apply bg-white dark:bg-darkTheme-secondary rounded-xl shadow-custom hover:shadow-custom-hover dark:shadow-dark-custom dark:hover:shadow-dark-custom-hover transition-shadow duration-300;
+  }
+}
