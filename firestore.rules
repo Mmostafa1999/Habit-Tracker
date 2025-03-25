@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny all access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    // User profiles
+    match /users/{userId} {
+      // Allow access only to authenticated user + valid App Check token
+      // For development, we're temporarily allowing authenticated users to read/write without App Check
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // User habits collection
+      match /habits/{habitId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // User categories collection
+      match /categories/{categoryId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // User journal entries collection
+      match /journalEntries/{entryId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // User achievements collection
+      match /achievements/{achievementId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+    
+    // Public data (if needed)
+    match /publicData/{docId} {
+      allow read: if true; // Allow all reads to public data during development
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
+  }
+}

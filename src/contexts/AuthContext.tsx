@@ -139,14 +139,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Update user profile picture using Firebase Storage instead of base64 in Firestore
     async function updateUserProfilePicture(file: File): Promise<void> {
         try {
-            if (!currentUser) {
-                toast.error('No user is currently logged in.');
-                return;
-            }
-
-            // Validate file size (5MB is a reasonable limit for profile pictures)
-            const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
-            if (file.size > maxSizeInBytes) {
+            // Validate file size (5MB max)
+            if (file.size > 5 * 1024 * 1024) {
                 toast.error('File size must be less than 5MB.');
                 return;
             }
@@ -166,8 +160,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 const { ref, uploadBytes, getDownloadURL } = await import('firebase/storage');
                 const { storage } = await import('../firebase');
 
-                // Create a storage reference
-                const storageRef = ref(storage, `profile-images/${currentUser.uid}`);
+                // Create a storage reference with a unique filename
+                const fileName = `profile_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+                const storageRef = ref(storage, `profile-images/${currentUser.uid}/${fileName}`);
 
                 // Upload the file to Firebase Storage
                 const uploadResult = await uploadBytes(storageRef, file);
@@ -175,29 +170,40 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 // Get the download URL
                 const downloadURL = await getDownloadURL(uploadResult.ref);
 
-                // Update the user's profile with the download URL
-                await updateProfile(currentUser, { photoURL: downloadURL });
+                console.log('Profile image uploaded, URL:', downloadURL);
 
-                // Update the user document in Firestore with the download URL (not the entire image)
-                const userDocRef = doc(db, 'users', currentUser.uid);
-                try {
-                    await updateDoc(userDocRef, {
-                        photoURL: downloadURL
-                    });
-                } catch {
-                    // If the document doesn't exist yet, create it
-                    await setDoc(userDocRef, {
-                        photoURL: downloadURL,
-                        displayName: currentUser.displayName || '',
-                        email: currentUser.email || '',
-                        createdAt: new Date().toISOString()
-                    });
+                // Verify the URL has a valid scheme before updating the profile
+                if (downloadURL && (downloadURL.startsWith('https://') || downloadURL.startsWith('http://'))) {
+                    // Update the user's profile with the download URL
+                    await updateProfile(currentUser, { photoURL: downloadURL });
+
+                    // Update the user document in Firestore with the download URL (not the entire image)
+                    const userDocRef = doc(db, 'users', currentUser.uid);
+                    try {
+                        await updateDoc(userDocRef, {
+                            photoURL: downloadURL
+                        });
+                    } catch (error) {
+                        console.log('User document not found, creating new one');
+                        // If the document doesn't exist yet, create it
+                        await setDoc(userDocRef, {
+                            photoURL: downloadURL,
+                            displayName: currentUser.displayName || '',
+                            email: currentUser.email || '',
+                            createdAt: new Date().toISOString()
+                        });
+                    }
+
+                    // Dismiss the loading toast and show success
+                    toast.dismiss(uploadingToast);
+                    toast.success('Profile picture updated successfully!');
+                } else {
+                    console.error('Invalid download URL received:', downloadURL);
+                    toast.dismiss(uploadingToast);
+                    toast.error('Could not update profile picture. Invalid URL format.');
                 }
-
-                // Dismiss the loading toast and show success
-                toast.dismiss(uploadingToast);
-                toast.success('Profile picture updated successfully!');
             } catch (error) {
+                console.error('Error in profile picture upload:', error);
                 toast.dismiss(uploadingToast);
                 throw error; // Re-throw to be caught by the outer catch
             }

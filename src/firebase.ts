@@ -1,6 +1,8 @@
 import { initializeApp } from "firebase/app";
+import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getFunctions } from "firebase/functions";
 import { getStorage } from "firebase/storage";
 
 // Firebase configuration using environment variables
@@ -16,9 +18,27 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase services
+// Initialize Firebase services first
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+export const functions = getFunctions(app);
 
+// Initialize App Check with optional fallback
+let appCheck = null;
+try {
+  // Only enable App Check if not in development mode
+  if (!import.meta.env.DEV) {
+    appCheck = initializeAppCheck(app, {
+      provider: new ReCaptchaV3Provider(
+        import.meta.env.VITE_RECAPTCHA_SITE_KEY || "missing-site-key",
+      ),
+      isTokenAutoRefreshEnabled: true,
+    });
+  } 
+} catch (error) {
+  console.error("Error initializing App Check:", error);
+}
+
+export { appCheck };
 export default app;

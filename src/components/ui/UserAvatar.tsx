@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 
 interface UserType {
     displayName?: string;
@@ -21,6 +22,85 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
     onClick
 }) => {
     const [imageError, setImageError] = useState(false);
+    const [imageUrl, setImageUrl] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        // Reset error state when user or photoURL changes
+        setImageError(false);
+        setIsLoading(false);
+
+        const fetchProfileImage = async () => {
+            // Process the photoURL to ensure it's a valid URL
+            if (!user?.photoURL) {
+                setImageUrl(null);
+                return;
+            }
+
+            // Handle standard web URLs
+            if (user.photoURL.startsWith('http://') || user.photoURL.startsWith('https://')) {
+                setImageUrl(user.photoURL);
+                return;
+            }
+
+            // Handle Firebase Storage URLs
+            if (user.photoURL.startsWith('gs://')) {
+                try {
+                    setIsLoading(true);
+                    const storage = getStorage();
+                    const downloadURL = await getDownloadURL(ref(storage, user.photoURL));
+                    setImageUrl(downloadURL);
+                } catch (error) {
+                    console.error('Error getting download URL from Storage:', error);
+                    setImageError(true);
+                    setImageUrl(null);
+                } finally {
+                    setIsLoading(false);
+                }
+                return;
+            }
+
+            // Handle firestore:// URLs by extracting the path and getting download URL
+            if (user.photoURL.startsWith('firestore://')) {
+                try {
+                    setIsLoading(true);
+                    // Convert firestore:// URL to a storage path
+                    // Example: firestore://users/userId/profileImage → profile-images/userId/[filename]
+                    const path = user.photoURL.replace('firestore://', '');
+                    const parts = path.split('/');
+
+                    if (parts.length >= 3 && parts[0] === 'users') {
+                        const userId = parts[1];
+                        // Since we don't know the exact filename, we'll use the userId for the storage path
+                        const storagePath = `profile-images/${userId}`;
+
+                        // We need to list files in this directory to get the actual file
+                        // But Firebase JS SDK doesn't provide a direct way to list files
+                        // Instead, we'll use a generic avatar image as fallback
+                        setImageError(true);
+                        setImageUrl(null);
+                    } else {
+                        setImageError(true);
+                        setImageUrl(null);
+                    }
+                } catch (error) {
+                    console.error('Error handling firestore:// URL:', error);
+                    setImageError(true);
+                    setImageUrl(null);
+                } finally {
+                    setIsLoading(false);
+                }
+                return;
+            }
+
+            // If we get here, it's an unknown URL format
+            console.error('Invalid image URL scheme:', user.photoURL);
+            setImageError(true);
+            setImageUrl(null);
+        };
+
+        fetchProfileImage();
+    }, [user, user?.photoURL]);
 
     const sizeClasses = {
         small: 'w-8 h-8 text-xs',
@@ -44,6 +124,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
     };
 
     const handleImageError = () => {
+        console.error('Failed to load image:', imageUrl);
         setImageError(true);
     };
 
@@ -57,9 +138,9 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
             onClick={onClick}
             style={{ cursor: onClick ? 'pointer' : 'default' }}
         >
-            {user?.photoURL && !imageError ? (
+            {imageUrl && !imageError ? (
                 <img
-                    src={user.photoURL}
+                    src={imageUrl}
                     alt={user.displayName || 'User'}
                     className="w-full h-full rounded-full object-cover"
                     onError={handleImageError}
